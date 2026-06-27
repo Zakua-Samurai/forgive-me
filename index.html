@@ -105,19 +105,24 @@
             position: relative;
             min-height: 50px;
             flex-wrap: wrap;
+            align-items: center;
         }
 
-        .btn-yes { background: #38a169; }
+        .btn-yes {
+            background: #38a169;
+            z-index: 2;
+        }
         .btn-yes:hover { background: #2f855a; }
 
-        /* Desktop only: No button absolute (teleporting) */
+        /* No button starts normally (side by side) but will become absolute on first hover */
         .btn-no {
             background: #e53e3e;
-            position: absolute;
+            position: relative;         /* stay in flow initially */
+            z-index: 1;
         }
         .btn-no:hover { background: #c53030; }
 
-        /* Mobile / touch devices: No button static, side by side */
+        /* On touch devices, No button never becomes absolute */
         @media (pointer: coarse), (max-width: 600px) {
             .btn-no {
                 position: relative !important;
@@ -143,6 +148,18 @@
             font-weight: bold;
             min-height: 24px;
             margin-top: 15px;
+        }
+
+        /* Urdu poetry styling */
+        .poetry {
+            direction: rtl;
+            text-align: right;
+            font-size: 1.3rem;
+            line-height: 2.2;
+            margin-bottom: 30px;
+            white-space: pre-line;
+            color: #2d3748;
+            font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Urdu Typesetting', 'Georgia', serif;
         }
 
         .result-box {
@@ -197,6 +214,20 @@
             <div class="heart">💔</div>
             <h1>I am really sorry...</h1>
             <p id="apology-text">Our friendship matters a lot to me, and I deeply regret how things turned out. I never intended to upset you. I hope you can find it in your heart to overlook my mistake.</p>
+            <button class="btn" onclick="nextScreen(5)">Continue</button>
+        </div>
+
+        <!-- POETRY SCREEN (you can paste your Urdu poetry here) -->
+        <div id="screen5" class="screen">
+            <div class="heart">📜</div>
+            <h1>A Few Words for You</h1>
+            <div class="poetry">
+                <!-- PASTE YOUR URDU POETRY BELOW (keep the line breaks) -->
+                یہاں اپنی شاعری لکھیں
+                دوسری لائن
+                تیسری لائن
+                <!-- PASTE YOUR URDU POETRY ABOVE -->
+            </div>
             <button class="btn" onclick="nextScreen(3)">Continue</button>
         </div>
 
@@ -211,7 +242,7 @@
             <div id="dynamic-msg"></div>
         </div>
 
-        <!-- Success screen – no generator for recipients -->
+        <!-- Final success screen -->
         <div id="screen4" class="screen">
             <div class="heart">❤️</div>
             <h1 id="success-title">Thank You!</h1>
@@ -228,27 +259,31 @@
             "Please? I'll buy you food!",
             "Okay, now you are just trying to click it on purpose!"
         ];
-        
+
         let noCount = 0;
         let targetedName = "Friend";
+        let isNoButtonAbsolute = false; // Track if the No button has been made absolute (desktop only)
 
-        // Detect if the device has a coarse pointer (touch) or is small screen
-        const isTouchDevice = window.matchMedia("(pointer: coarse)").matches || 
-                             ('ontouchstart' in window) || 
+        // Touch / mobile detection
+        const isTouchDevice = window.matchMedia("(pointer: coarse)").matches ||
+                             ('ontouchstart' in window) ||
                              (navigator.maxTouchPoints > 0);
 
         function initializePage() {
             const urlParams = new URLSearchParams(window.location.search);
             const nameParam = urlParams.get('name');
-            
+
             if (nameParam && nameParam.trim() !== "") {
                 // Recipient mode
                 targetedName = decodeURIComponent(nameParam);
                 document.getElementById('welcome-title').innerText = "Hey, " + targetedName;
-                document.getElementById('apology-text').innerText = "Our friendship matters a lot to me, and I deeply regret how things turned out. I never intended to upset you, " + targetedName + ". I hope you can find it in your heart to overlook my mistake.";
+                document.getElementById('apology-text').innerText =
+                    "Our friendship matters a lot to me, and I deeply regret how things turned out. I never intended to upset you, " +
+                    targetedName +
+                    ". I hope you can find it in your heart to overlook my mistake.";
                 document.getElementById('ask-text').innerText = "Will you forgive me, " + targetedName + "?";
                 document.getElementById('success-title').innerText = "Thank You, " + targetedName + "!";
-                
+
                 document.getElementById('screen1').classList.add('active');
             } else {
                 // Generator mode
@@ -267,22 +302,28 @@
         function moveNoButton() {
             const noBtn = document.getElementById('noBtn');
             const container = document.querySelector('.container');
-            
-            // On touch devices: only show messages, do NOT move the button
+
+            // On touch devices: only show messages, never move
             if (isTouchDevice) {
                 noCount++;
                 updateMessage();
                 return;
             }
 
-            // Desktop: teleport the button
+            // Desktop: first time hover/click – make the button absolute so it can teleport
+            if (!isNoButtonAbsolute) {
+                noBtn.style.position = 'absolute';
+                isNoButtonAbsolute = true;
+            }
+
+            // Calculate random position inside the card
             const padding = 20;
             const maxX = container.clientWidth - noBtn.clientWidth - (padding * 2);
             const maxY = container.clientHeight - noBtn.clientHeight - (padding * 2);
-            
+
             const randomX = Math.floor(Math.random() * maxX) - (maxX / 2);
             const randomY = Math.floor(Math.random() * maxY) - (maxY / 2) + 50;
-            
+
             noBtn.style.left = randomX + 'px';
             noBtn.style.top = randomY + 'px';
 
@@ -292,7 +333,7 @@
 
         function updateMessage() {
             const msgDiv = document.getElementById('dynamic-msg');
-            let msgIndex = (noCount - 1) % funnyResponses.length;
+            const msgIndex = (noCount - 1) % funnyResponses.length;
             let msg = funnyResponses[msgIndex];
             if (targetedName !== "Friend") {
                 msg = msg.replace("!", ", " + targetedName + "!");
@@ -310,20 +351,20 @@
 
             const baseUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
             const finalLink = baseUrl + "?name=" + encodeURIComponent(nameInput);
-            
+
             document.getElementById('generatedLink').innerText = finalLink;
-            
+
             document.getElementById('screen-generator').classList.remove('active');
             document.getElementById('screen-link').classList.add('active');
         }
 
         function copyToClipboard() {
             const linkText = document.getElementById('generatedLink').innerText;
-            navigator.clipboard.writeText(linkText).then(function() {
+            navigator.clipboard.writeText(linkText).then(function () {
                 const copyBtn = document.getElementById('copyBtn');
                 copyBtn.innerText = "Copied!";
                 copyBtn.style.background = "#38a169";
-            }).catch(function(err) {
+            }).catch(function (err) {
                 alert("Could not copy automatically. Please copy the text manually.");
             });
         }
