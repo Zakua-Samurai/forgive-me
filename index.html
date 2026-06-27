@@ -104,16 +104,31 @@
             gap: 20px;
             position: relative;
             min-height: 50px;
+            flex-wrap: wrap;
         }
 
         .btn-yes { background: #38a169; }
         .btn-yes:hover { background: #2f855a; }
 
+        /* Desktop only: No button absolute (teleporting) */
         .btn-no {
             background: #e53e3e;
             position: absolute;
         }
         .btn-no:hover { background: #c53030; }
+
+        /* Mobile / touch devices: No button static, side by side */
+        @media (pointer: coarse), (max-width: 600px) {
+            .btn-no {
+                position: relative !important;
+                left: auto !important;
+                top: auto !important;
+            }
+            .btn-group {
+                flex-direction: row;
+                justify-content: center;
+            }
+        }
 
         .heart {
             font-size: 3.5rem;
@@ -196,12 +211,11 @@
             <div id="dynamic-msg"></div>
         </div>
 
-        <!-- Success screen – generator section is hidden for recipients -->
+        <!-- Success screen – no generator for recipients -->
         <div id="screen4" class="screen">
             <div class="heart">❤️</div>
             <h1 id="success-title">Thank You!</h1>
             <p id="success-text">That means the world to me. Let's catch up and talk soon like we used to!</p>
-            <!-- The generator part is removed from here; only shown on sender's screen -->
         </div>
 
     </div>
@@ -218,28 +232,30 @@
         let noCount = 0;
         let targetedName = "Friend";
 
-        // Check URL for ?name= and decide which flow to show
+        // Detect if the device has a coarse pointer (touch) or is small screen
+        const isTouchDevice = window.matchMedia("(pointer: coarse)").matches || 
+                             ('ontouchstart' in window) || 
+                             (navigator.maxTouchPoints > 0);
+
         function initializePage() {
             const urlParams = new URLSearchParams(window.location.search);
             const nameParam = urlParams.get('name');
             
             if (nameParam && nameParam.trim() !== "") {
-                // Recipient mode – show the apology screens
+                // Recipient mode
                 targetedName = decodeURIComponent(nameParam);
                 document.getElementById('welcome-title').innerText = "Hey, " + targetedName;
                 document.getElementById('apology-text').innerText = "Our friendship matters a lot to me, and I deeply regret how things turned out. I never intended to upset you, " + targetedName + ". I hope you can find it in your heart to overlook my mistake.";
                 document.getElementById('ask-text').innerText = "Will you forgive me, " + targetedName + "?";
                 document.getElementById('success-title').innerText = "Thank You, " + targetedName + "!";
                 
-                // Activate screen 1 (welcome) for recipient
                 document.getElementById('screen1').classList.add('active');
             } else {
-                // Generator mode – show the input screen
+                // Generator mode
                 document.getElementById('screen-generator').classList.add('active');
             }
         }
 
-        // Recipient navigation
         function nextScreen(screenNum) {
             const screens = document.querySelectorAll('.screen');
             for (let i = 0; i < screens.length; i++) {
@@ -252,6 +268,14 @@
             const noBtn = document.getElementById('noBtn');
             const container = document.querySelector('.container');
             
+            // On touch devices: only show messages, do NOT move the button
+            if (isTouchDevice) {
+                noCount++;
+                updateMessage();
+                return;
+            }
+
+            // Desktop: teleport the button
             const padding = 20;
             const maxX = container.clientWidth - noBtn.clientWidth - (padding * 2);
             const maxY = container.clientHeight - noBtn.clientHeight - (padding * 2);
@@ -263,9 +287,12 @@
             noBtn.style.top = randomY + 'px';
 
             noCount++;
+            updateMessage();
+        }
+
+        function updateMessage() {
             const msgDiv = document.getElementById('dynamic-msg');
             let msgIndex = (noCount - 1) % funnyResponses.length;
-            
             let msg = funnyResponses[msgIndex];
             if (targetedName !== "Friend") {
                 msg = msg.replace("!", ", " + targetedName + "!");
@@ -286,7 +313,6 @@
             
             document.getElementById('generatedLink').innerText = finalLink;
             
-            // Switch to link output screen
             document.getElementById('screen-generator').classList.remove('active');
             document.getElementById('screen-link').classList.add('active');
         }
@@ -302,7 +328,6 @@
             });
         }
 
-        // Start everything on page load
         window.onload = initializePage;
     </script>
 </body>
