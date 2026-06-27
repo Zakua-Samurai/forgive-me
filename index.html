@@ -151,16 +151,33 @@
 <body>
 
     <div class="container">
-        
-        <!-- Screen 1: Welcome -->
-        <div id="screen1" class="screen active">
+
+        <!-- GENERATOR FLOW (no ?name= param) -->
+        <div id="screen-generator" class="screen">
+            <div class="heart">✨</div>
+            <h1>Apology Link Generator</h1>
+            <p>Enter your friend's name to create a personalized apology page.</p>
+            <input type="text" id="friendNameInput" class="input-field" placeholder="Enter friend's name...">
+            <button class="btn" onclick="generateLink()">Generate Link</button>
+        </div>
+
+        <div id="screen-link" class="screen">
+            <div class="heart">🔗</div>
+            <h1>Your Link is Ready</h1>
+            <p>Copy the link below and send it to your friend:</p>
+            <div class="result-box" id="generatedLink"></div>
+            <button class="btn" onclick="copyToClipboard()" id="copyBtn">Copy Link</button>
+            <button class="btn" style="background:#718096; margin-top:10px;" onclick="location.reload()">Create Another</button>
+        </div>
+
+        <!-- RECIPIENT FLOW (?name= present) -->
+        <div id="screen1" class="screen">
             <div class="heart">✉️</div>
             <h1 id="welcome-title">Hey, Friend</h1>
-            <p>I built this small space tool so you could apology to your friend</p>
+            <p>I built this small space because I have something important to tell you. Do you have a quick minute?</p>
             <button class="btn" onclick="nextScreen(2)">Yes, go ahead</button>
         </div>
 
-        <!-- Screen 2: The Apology -->
         <div id="screen2" class="screen">
             <div class="heart">💔</div>
             <h1>I am really sorry...</h1>
@@ -168,7 +185,6 @@
             <button class="btn" onclick="nextScreen(3)">Continue</button>
         </div>
 
-        <!-- Screen 3: Interactive Decision -->
         <div id="screen3" class="screen">
             <div class="heart">💝</div>
             <h1>Can we fix this?</h1>
@@ -180,26 +196,12 @@
             <div id="dynamic-msg"></div>
         </div>
 
-        <!-- Screen 4: Success Message / Generator -->
+        <!-- Success screen – generator section is hidden for recipients -->
         <div id="screen4" class="screen">
             <div class="heart">❤️</div>
             <h1 id="success-title">Thank You!</h1>
             <p id="success-text">That means the world to me. Let's catch up and talk soon like we used to!</p>
-            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0;">
-            <h3>Create Your Own Apology Link</h3>
-            <p style="font-size: 0.9rem; margin-bottom: 15px;">Want to apologize to someone else? Enter their name below to generate a custom link.</p>
-            <input type="text" id="friendName" class="input-field" placeholder="Enter friend's name...">
-            <button class="btn" onclick="generateLink()">Generate Link</button>
-        </div>
-
-        <!-- Screen 5: Link Output -->
-        <div id="screen5" class="screen">
-            <div class="heart">✨</div>
-            <h1>Link Ready!</h1>
-            <p>Copy the custom link below and send it to your friend:</p>
-            <div class="result-box" id="generatedLink"></div>
-            <button class="btn" onclick="copyToClipboard()" id="copyBtn">Copy Link</button>
-            <button class="btn" style="background:#718096; margin-top:10px;" onclick="location.reload()">Create Another</button>
+            <!-- The generator part is removed from here; only shown on sender's screen -->
         </div>
 
     </div>
@@ -216,20 +218,28 @@
         let noCount = 0;
         let targetedName = "Friend";
 
-        function checkUrlParameters() {
+        // Check URL for ?name= and decide which flow to show
+        function initializePage() {
             const urlParams = new URLSearchParams(window.location.search);
             const nameParam = urlParams.get('name');
             
             if (nameParam && nameParam.trim() !== "") {
+                // Recipient mode – show the apology screens
                 targetedName = decodeURIComponent(nameParam);
-                
                 document.getElementById('welcome-title').innerText = "Hey, " + targetedName;
                 document.getElementById('apology-text').innerText = "Our friendship matters a lot to me, and I deeply regret how things turned out. I never intended to upset you, " + targetedName + ". I hope you can find it in your heart to overlook my mistake.";
                 document.getElementById('ask-text').innerText = "Will you forgive me, " + targetedName + "?";
                 document.getElementById('success-title').innerText = "Thank You, " + targetedName + "!";
+                
+                // Activate screen 1 (welcome) for recipient
+                document.getElementById('screen1').classList.add('active');
+            } else {
+                // Generator mode – show the input screen
+                document.getElementById('screen-generator').classList.add('active');
             }
         }
 
+        // Recipient navigation
         function nextScreen(screenNum) {
             const screens = document.querySelectorAll('.screen');
             for (let i = 0; i < screens.length; i++) {
@@ -263,8 +273,9 @@
             msgDiv.innerText = msg;
         }
 
+        // Generator functions
         function generateLink() {
-            const nameInput = document.getElementById('friendName').value.trim();
+            const nameInput = document.getElementById('friendNameInput').value.trim();
             if (nameInput === "") {
                 alert("Please enter a name first!");
                 return;
@@ -274,7 +285,10 @@
             const finalLink = baseUrl + "?name=" + encodeURIComponent(nameInput);
             
             document.getElementById('generatedLink').innerText = finalLink;
-            nextScreen(5);
+            
+            // Switch to link output screen
+            document.getElementById('screen-generator').classList.remove('active');
+            document.getElementById('screen-link').classList.add('active');
         }
 
         function copyToClipboard() {
@@ -288,7 +302,8 @@
             });
         }
 
-        window.onload = checkUrlParameters;
+        // Start everything on page load
+        window.onload = initializePage;
     </script>
 </body>
 </html>
